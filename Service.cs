@@ -5,10 +5,6 @@ using System.Drawing;
 using System.Net.Mail;
 using System.Net;
 using System.Text;
-using System.Linq;
-using System.Diagnostics.SymbolStore;
-using Newtonsoft.Json.Linq;
-using System.Linq.Expressions;
 
 namespace Booking
 {
@@ -36,7 +32,6 @@ namespace Booking
             bookingDate = date;
             bookingTime = time;
             bookingPeople = people;
-
         }
 
 
@@ -62,6 +57,7 @@ namespace Booking
             }
             if (result.statusCode == 1000)
             {
+                Console.WriteLine($"Tooken: {result.result.customerLoginResp.token}");
                 token = string.Format("Bearer {0}", result.result.customerLoginResp.token);
                 //正常
                 return token;
@@ -144,7 +140,7 @@ namespace Booking
             HttpClient client = new HttpClient() { };
 
             client.DefaultRequestHeaders.Add("act", _Act);
-            client.DefaultRequestHeaders.Add("authorization", this.token);
+            client.DefaultRequestHeaders.Add("authorization", token);
 
             var postData = new
             {
@@ -243,10 +239,22 @@ namespace Booking
                     case 1000:
                         Console.WriteLine("保留成功");
                         break;
+                    case 105007:
+                        Console.WriteLine(result.message);
+
+                        var newSVG = GetSVG();
+                        RenderSVG(newSVG);
+
+                        Console.WriteLine("輸入驗證碼:");
+                        string newverifyStr = Console.ReadLine();
+                        SaveSeats(newverifyStr, newSVG.code);
+                        break;
                     default:
                         Console.WriteLine(result.message);
                         break;
                 }
+
+                return;
 
                 //if (statusCode == 400005)
                 //{
@@ -321,7 +329,6 @@ namespace Booking
 
             string json = JsonConvert.SerializeObject(postData);
 
-
             int statusCode = 101007;
 
             while (statusCode == 101007)
@@ -330,17 +337,21 @@ namespace Booking
 
                 HttpResponseMessage response = client.PostAsync(url, contentPost).GetAwaiter().GetResult();
 
-                var result = JsonConvert.DeserializeObject<Booking>(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                //var result = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-                Console.WriteLine(string.Format("Bookin Status: {0}", result.statusCode));
+                Console.WriteLine(string.Format("Bookin Status: {0}", response.StatusCode));
 
-                statusCode = result.statusCode;
+
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    statusCode = 200;
+                    Console.WriteLine("訂位成功!!!!");
+                }                
 
                 if (statusCode == 101007)
                 {
                     Thread.Sleep(2000);
                 }
-
             }
         }
 
