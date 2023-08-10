@@ -133,7 +133,7 @@ namespace Booking
         }
 
 
-        public bool searchBookingAble()
+        public int searchBookingAble()
         {
             string url = @"https://www.feastogether.com.tw/api/booking/searchBookingAble";
 
@@ -165,7 +165,7 @@ namespace Booking
 
             if (result == null)
             {
-                return false;
+                return 101010;
             }
             else
             {
@@ -176,19 +176,19 @@ namespace Booking
                 {
                     enableTime = target.FirstOrDefault().time;
                     mealSeq = target.FirstOrDefault().mealSeq;
-                    return true;
+                    return 105007;
                 }
                 //目標館無空位
                 else
                 {
                     Console.WriteLine("已無閒置時間段");
-                    return false;
+                    return 101010;
                 }
             }
         }
 
 
-        public void SaveSeats(string verifyStr, string svgCode)
+        public int SaveSeats(string verifyStr, string svgCode)
         {
             string url = @"https://www.feastogether.com.tw/api/booking/saveSeats";
 
@@ -199,7 +199,7 @@ namespace Booking
                 mealSeq = mealSeq,
                 mealTime = enableTime,
                 peopleCount = bookingPeople,
-                scgVerifyStr = verifyStr??string.Empty,
+                scgVerifyStr = verifyStr ?? string.Empty,
                 storeId = _StoreId,
                 zked = "1j6ul4y94ejru6xk7vu4vu4",
                 svgCode = svgCode
@@ -215,59 +215,15 @@ namespace Booking
 
             HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
 
-            //101010 : 客滿
-            //101027 : 訂位人數擁擠中
-            //105005 : 目前人潮壅擠中
-            int statusCode = 400005;
+            Console.WriteLine("送出保留座位REQEUST");
 
-            while (statusCode == 400005)
-            {
-                HttpResponseMessage response = client.PostAsync(url, contentPost).GetAwaiter().GetResult();
+            HttpResponseMessage response = client.PostAsync(url, contentPost).GetAwaiter().GetResult();
 
-                var result = JsonConvert.DeserializeObject<SaveSets>(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+            var result = JsonConvert.DeserializeObject<SaveSets>(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
 
-                statusCode = result.statusCode;
+            Console.WriteLine($"保留座位 Status: {result.message} CODE: {result.statusCode}");
 
-                Console.WriteLine(string.Format("保留座位 Status: {0}", result.message));
-
-                switch (statusCode)
-                {
-                    case 101010:
-                        Console.WriteLine("客滿 重選時間");
-                        searchBookingAble();
-                        break;
-                    case 1000:
-                        Console.WriteLine("保留成功");
-                        break;
-                    case 105007:
-                        Console.WriteLine(result.message);
-                        var newSVG = GetSVG();
-                        RenderSVG(newSVG);
-                        string newverifyStr = string.Empty;
-
-                        //空白驗證碼不送出
-                        while (string.IsNullOrEmpty(newverifyStr))
-                        {
-                            Console.Write("輸入驗證碼:");
-                            newverifyStr = Console.ReadLine();
-                        }
-                       
-                        SaveSeats(newverifyStr, newSVG.code);
-                        break;
-                    default:
-                        Console.WriteLine(result.message);
-                        break;
-                }
-
-                return;
-
-                //if (statusCode == 400005)
-                //{
-                //    //ReleaseSeats();
-
-                //    Thread.Sleep(1000);
-                //}
-            }
+            return result.statusCode;
         }
 
         public void SendBooking()
@@ -327,7 +283,7 @@ namespace Booking
                 special = 0
                 ,
                 //storeCode = "NTBQ"
-                storeCode = "IPDS"     
+                storeCode = "IPDS"
                 ,
                 yuuu = "892389djdj883831445"
             };
@@ -351,11 +307,12 @@ namespace Booking
                 {
                     statusCode = 200;
                     Console.WriteLine("訂位成功!!!!");
-                }                
+                }
 
                 if (statusCode == 101007)
                 {
-                    Thread.Sleep(2000);
+                    Console.WriteLine("訂位失敗繼續嘗試");
+                    Thread.Sleep(2000);                    
                 }
             }
         }
