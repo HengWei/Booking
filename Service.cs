@@ -241,12 +241,17 @@ namespace Booking
                         break;
                     case 105007:
                         Console.WriteLine(result.message);
-
                         var newSVG = GetSVG();
                         RenderSVG(newSVG);
+                        string newverifyStr = string.Empty;
 
-                        Console.WriteLine("輸入驗證碼:");
-                        string newverifyStr = Console.ReadLine();
+                        //空白驗證碼不送出
+                        while (string.IsNullOrEmpty(newverifyStr))
+                        {
+                            Console.Write("輸入驗證碼:");
+                            newverifyStr = Console.ReadLine();
+                        }
+                       
                         SaveSeats(newverifyStr, newSVG.code);
                         break;
                     default:
