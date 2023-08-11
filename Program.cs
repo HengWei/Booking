@@ -7,6 +7,7 @@
             //搶位順序
             string[] time = new string[] { "lunch", "dinner", "tea" };
 
+            //時間index
             int idxTime = 0;
 
             //正常都是搶一個月後的日期 除非月底會開放到最後一天 這時候使用指定
@@ -79,6 +80,8 @@
                 {
                     sVG = service.GetSVG();
                     service.RenderSVG(sVG);
+
+                    verifyStr = string.Empty;
 
                     //空白驗證碼不送出
                     while (string.IsNullOrEmpty(verifyStr))
