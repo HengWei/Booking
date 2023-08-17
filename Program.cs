@@ -17,36 +17,40 @@
             int people = 2;
 
             Console.WriteLine($"日期: {date} , 時間: {time[idxTime]}, 人數: {people}");
-          
+
             //lunch tea dinner
-            Service service = new Service(date, time[idxTime], people);            
+            Service service = new Service(date, time[idxTime], people);
 
             var tooken = service.Login();
 
-            if(string.IsNullOrEmpty(tooken))
+            if (string.IsNullOrEmpty(tooken))
             {
                 Console.WriteLine("Tooken取得異常");
                 Console.ReadKey();
-            }            
+            }
 
-            Console.WriteLine("取得Token完畢，準備進行搶位"); 
+            Console.WriteLine("取得Token完畢，準備進行搶位");
 
-            //先打開來等
-            bool isTimeUp = false;
+            //先打開來等          
 
             var datetimeNow = DateTime.Now;
 
             DateTime startTime = new DateTime(datetimeNow.Year, datetimeNow.Month, datetimeNow.Day, 9, 0, 0);
 
-            while (isTimeUp==false)
+            while (true)
             {
-                if (datetimeNow>= startTime)
+                if (DateTime.Now >= startTime)
                 {
-                    isTimeUp = true;
+                    break;
                 }
+
+                Console.WriteLine($"時間未到 系統時間{DateTime.Now.ToString("HH:mm:ss")}");
 
                 Task.Delay(1000).Wait();
             }
+
+            //清除前面的資訊
+            Console.Clear();
 
             //嘗試次數
             int searchTime = 0;
@@ -90,20 +94,21 @@
                         verifyStr = Console.ReadLine();
                     }
 
-                    statusCode = service.SaveSeats(verifyStr, sVG.code);
+                    statusCode = service.SaveSeats(verifyStr, sVG.code).GetAwaiter().GetResult();
                 }
                 //訂訂成功
-                else if(statusCode==1000)
+                else if (statusCode == 1000)
                 {
-                    service.SendBooking();
+                    service.SendBooking().GetAwaiter().GetResult();
                     break;
                 }
 
                 //101027 : 訂位人數擁擠中
                 //105005 : 目前人潮壅擠中
+                //99998 : SaveSeats TimeOut
                 else
                 {
-                    statusCode = service.SaveSeats(verifyStr, sVG.code);
+                    statusCode = service.SaveSeats(verifyStr, sVG.code).GetAwaiter().GetResult();
                 }
             }
         }

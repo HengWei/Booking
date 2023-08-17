@@ -188,7 +188,7 @@ namespace Booking
         }
 
 
-        public int SaveSeats(string verifyStr, string svgCode)
+        public async Task<int> SaveSeats(string verifyStr, string svgCode)
         {
             string url = @"https://www.feastogether.com.tw/api/booking/saveSeats";
 
@@ -217,16 +217,29 @@ namespace Booking
 
             Console.WriteLine("送出保留座位REQEUST");
 
-            HttpResponseMessage response = client.PostAsync(url, contentPost).GetAwaiter().GetResult();
 
-            var result = JsonConvert.DeserializeObject<SaveSets>(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+            var postAsync = client.PostAsync(url, contentPost);
 
-            Console.WriteLine($"保留座位 Status: {result.message} CODE: {result.statusCode}");
+            var asyncResult = await Task.WhenAny(postAsync, Task.Delay(10000));
 
-            return result.statusCode;
+            if (asyncResult == postAsync)
+            {
+                HttpResponseMessage response = await postAsync;
+
+                var result = JsonConvert.DeserializeObject<SaveSets>(response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+
+                Console.WriteLine($"保留座位 Status: {result.message} CODE: {result.statusCode}");
+
+                return result.statusCode;
+            }
+            else
+            {
+                Console.WriteLine("送出保留座位 TimeOut");
+                return 99998;
+            }
         }
 
-        public void SendBooking()
+        public async Task SendBooking()
         {
             string url = @"https://www.feastogether.com.tw/api/booking/booking";
 
@@ -292,27 +305,38 @@ namespace Booking
 
             int statusCode = 101007;
 
+            Console.WriteLine("送出Booking REQEUST");
+
             while (statusCode == 101007)
             {
                 HttpContent contentPost = new StringContent(json, Encoding.UTF8, "application/json");
 
-                HttpResponseMessage response = client.PostAsync(url, contentPost).GetAwaiter().GetResult();
+                var postAsync = client.PostAsync(url, contentPost);
 
-                //var result = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                var taskResult = await Task.WhenAny(postAsync, Task.Delay(3000));
 
-                Console.WriteLine(string.Format("Bookin Status: {0}", response.StatusCode));
-
-
-                if (response.StatusCode == HttpStatusCode.OK)
+                if (taskResult == postAsync)
                 {
-                    statusCode = 200;
-                    Console.WriteLine("訂位成功!!!!");
+                    HttpResponseMessage response = await postAsync;
+
+                    Console.WriteLine(string.Format("Bookin Status: {0}", response.StatusCode));
+
+                    if (response.StatusCode == HttpStatusCode.OK)
+                    {
+                        statusCode = 200;
+                        Console.WriteLine("訂位成功!!!!");
+                    }
+
+                    if (statusCode == 101007)
+                    {
+                        Console.WriteLine("訂位失敗繼續嘗試");
+                        Thread.Sleep(1000);
+                    }
                 }
-
-                if (statusCode == 101007)
+                else
                 {
-                    Console.WriteLine("訂位失敗繼續嘗試");
-                    Thread.Sleep(2000);                    
+                    Console.WriteLine("訂位TimeOut");
+                    continue;
                 }
             }
         }
